@@ -91,14 +91,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="GUARDERIA.exe" size="1171416">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="GUARDERIA.exe" size="1166808">
       <assemblyIdentity name="GUARDERIA" version="1.0.0.2" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>famwzJAuNsu8x1/wWQ91NQye1ZoC3wfSw3m2SlIw5wM=</dsig:DigestValue>
+        <dsig:DigestValue>CbU70WFAV2Kjmjj1sfGD5KoUgE1Nd/23gHOxHACh7yc=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
