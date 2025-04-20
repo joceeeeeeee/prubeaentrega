@@ -1,12 +1,11 @@
-name: .NET
+name: Build and Analyze
 
 on:
   push:
     branches:
       - main
   pull_request:
-    branches:
-      - main
+    types: [opened, synchronize, reopened]
 
 jobs:
   build:
@@ -15,34 +14,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '7.0.x'
+          dotnet-version: '7.x'
 
-      - name: Install SonarCloud Scanner
-        shell: powershell
-        run: |
-          mkdir .\.sonar\scanner
-          Invoke-WebRequest -Uri https://github.com/SonarSource/sonar-scanner-msbuild/releases/latest/download/dotnet-sonar-scanner.zip -OutFile scanner.zip
-          Expand-Archive -Path scanner.zip -DestinationPath .\.sonar\scanner
-          Remove-Item scanner.zip
+      - name: Restore dependencies
+        run: dotnet restore Pictures/GUARDERIA/GUARDERIA.sln
 
       - name: Begin SonarCloud analysis
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: powershell
         run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"Pruebas-Sonarqube_prueba-ex" /o:"pruebas-sonarqube" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet sonarscanner begin /k:"Pruebas-Sonarqube_prueba-ex" /o:"pruebas-sonarqube" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /s:"Pictures/GUARDERIA/GUARDERIA.sln"
 
-      - name: Build solution
-        run: dotnet build GUARDERIA.sln --no-incremental --nologo
+      - name: Build the project
+        run: dotnet build Pictures/GUARDERIA/GUARDERIA.sln --no-incremental --nologo
 
       - name: End SonarCloud analysis
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: powershell
-        run: |
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
