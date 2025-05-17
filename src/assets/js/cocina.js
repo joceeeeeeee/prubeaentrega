@@ -212,12 +212,13 @@ function enviarAlMesero() {
 // ── COCINA ────────────────────────────────────────────────────────────
 function renderPedidosCocina() {
   const cont = document.getElementById("pedidosCocina"); 
-  if (!cont) return;
+   if (!cont) return;
+  
   const k = getKitchen(); 
   cont.innerHTML = "";
   
   if (!k.length) {
-    // Mostrar modal si no hay pedidos
+    // Mostrar el modal de "No hay pedidos"
     const modalVacio = new bootstrap.Modal(document.getElementById("modalVacio"));
     modalVacio.show();
     return;
