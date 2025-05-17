@@ -85,7 +85,7 @@ form {
   background-color: #fff8f0; /* tono vintage suave */
   border: 2px solid #d4a373; /* borde clásico */
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  font-family: 'Georgia', serif;
+  font-family: 'Kavoon', cursive;
 }
 
 /* Título del modal */
@@ -149,6 +149,7 @@ header {
   padding: 10px 20px;
   background-color: transparent;
 }
+
 .logo {
   display: flex;
   align-items: center;
