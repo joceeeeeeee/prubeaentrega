@@ -211,49 +211,59 @@ function enviarAlMesero() {
 
 // ── COCINA ────────────────────────────────────────────────────────────
 function renderPedidosCocina() {
-  const cont = document.getElementById("pedidosCocina"); if (!cont) return;
-  const k = getKitchen(); cont.innerHTML = "";
+  const cont = document.getElementById("pedidosCocina"); 
+  if (!cont) return;
+  const k = getKitchen(); 
+  cont.innerHTML = "";
   if (!k.length) {
-    cont.innerHTML = "<p>No hay pedidos.</p>";
+    cont.innerHTML = "<p id='mensajeVacio'>No hay pedidos.</p>";
     return;
   }
-  const tbl = document.createElement("table"); tbl.className = "table";
+
+  const tbl = document.createElement("table"); 
+  tbl.className = "table";
   tbl.innerHTML = `<thead><tr><th>Mesa</th><th>Usuario</th><th>Productos</th><th>Acción</th></tr></thead>`;
   const tb = document.createElement("tbody");
+
   k.forEach((pd, i) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${pd.mesa}</td><td>${pd.usuario}</td><td><ul>${pd.items.map(x => `<li>${x.nombre}</li>`).join("")}</ul></td>
-      <td><button class="btn btn-sm btn-success" onclick="completarPedido(${i})">Listo</button></td>`;
+      <td><button class="btn btn-sm btn-success" onclick="mostrarDetalle(${i})">Listo</button></td>`;
     tb.appendChild(tr);
   });
-  tbl.appendChild(tb); cont.appendChild(tbl);
+  tbl.appendChild(tb); 
+  cont.appendChild(tbl);
 }
 
-function completarPedido(i) {
-  const k = getKitchen(), done = k.splice(i, 1)[0]; setKitchen(k);
-  const c = JSON.parse(localStorage.getItem("kitchenCompleted")) || []; c.push(done); localStorage.setItem("kitchenCompleted", JSON.stringify(c));
+function mostrarDetalle(i) {
+  const k = getKitchen(); 
+  const pd = k[i];
+
+  // Mostrar el modal con los detalles del pedido
+  const detalleOrden = document.getElementById("detalleOrden");
+  detalleOrden.innerHTML = pd.items.map(x => `<li>${x.nombre}</li>`).join(""); // Agregar productos al modal
+  
+  const myModal = new bootstrap.Modal(document.getElementById('pedidoModal'));
+  myModal.show();
+
+  // Guardar el índice del pedido seleccionado
+  window.selectedPedidoIndex = i;
+}
+
+function completarPedidoModal() {
+  const k = getKitchen();
+  const done = k.splice(window.selectedPedidoIndex, 1)[0]; 
+  setKitchen(k);
+
+  const c = JSON.parse(localStorage.getItem("kitchenCompleted")) || []; 
+  c.push(done); 
+  localStorage.setItem("kitchenCompleted", JSON.stringify(c));
+
   renderPedidosCocina();
+  const myModal = new bootstrap.Modal(document.getElementById('pedidoModal'));
+  myModal.hide(); // Cerrar el modal
 }
 
-
-    function markAsCompleted(element) {
-      element.classList.remove("status-pending", "status-inprocess");
-      element.classList.add("status-completed");
-      const spans = element.querySelectorAll("span");
-      spans.forEach(span => {
-        span.textContent = "✔";
-        span.className = "check";
-      });
-    }
-
-    setInterval(() => {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      const ampm = hours >= 12 ? 'pm' : 'am';
-      const hour12 = hours % 12 || 12;
-      document.getElementById("time").textContent = `${hour12}:${minutes} ${ampm}`;
-    }, 1000);
 
 
 // ── ADMIN ─────────────────────────────────────────────────────────────
