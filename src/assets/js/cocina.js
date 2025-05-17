@@ -215,8 +215,11 @@ function renderPedidosCocina() {
   if (!cont) return;
   const k = getKitchen(); 
   cont.innerHTML = "";
+  
   if (!k.length) {
-    cont.innerHTML = "<p id='mensajeVacio'>No hay pedidos.</p>";
+    // Mostrar modal si no hay pedidos
+    const modalVacio = new bootstrap.Modal(document.getElementById("modalVacio"));
+    modalVacio.show();
     return;
   }
 
