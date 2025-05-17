@@ -9,6 +9,28 @@ body {
   padding-top: 20px;
 }
 
+
+#modalVacio .modal-content {
+  background-color: #f8f9fa; /* Fondo claro */
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+#modalVacio .modal-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 150px;
+}
+
+#mensajeVacio {
+  font-size: 2rem; /* Letra grande */
+  font-weight: bold; /* Negrita */
+  color: #333;
+  margin: 0;
+}
+
+
 /* Título con imagen */
 .titulo img {
   border-radius: 10px;
