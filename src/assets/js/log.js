@@ -147,15 +147,84 @@ function renderPedidoMesero() {
 
     cont.innerHTML += `
       <div class="producto">
-        <p><strong>${i + 1}. ${item.nombre}</strong></p>
+        <p><strong>${i}. ${item.nombre}</strong></p>
         <p>🧂 Ingredientes actuales: ${listaIngredientes}</p>
         <p style="color:green;">➕ Agregados: ${agregados}</p>
         <p style="color:red;">➖ Quitados: ${quitados}</p>
         <button class="btn btn-sm btn-danger" onclick="eliminarProducto(${i})">Eliminar</button>
+        <button class="btn btn-sm btn-warning" onclick="editarProducto(${i})">Editar</button> <!-- Botón de editar -->
       </div>
     `;
   });
 }
+
+function editarProducto(index) {
+  const pedido = getPedido();
+  const item = pedido[index];
+
+  // Mostrar un modal con el nombre y los ingredientes actuales
+  const modalContent = document.getElementById("modalEditarContenido");
+  
+  // Crear una lista de checkboxes con los ingredientes actuales
+  modalContent.innerHTML = `
+    <h5>Editar ${item.nombre}</h5>
+    <div>
+      <strong>Ingredientes actuales:</strong>
+      <ul id="ingredientesLista">
+        ${item.ingredientes.map((ingrediente, i) => `
+          
+            <input type="checkbox" id="ingrediente${i}" ${item.ingredientes.includes(ingrediente) ? 'checked' : ''}>
+            <label for="ingrediente${i}">${ingrediente}</label><br>
+          `).join("")}
+      </ul>
+      <label for="nuevoIngrediente">Nuevo ingrediente:</label>
+      <input type="text" id="nuevoIngrediente" class="form-control" placeholder="Ej: Jalapeños">
+      <button class="btn btn-success mt-2" onclick="guardarEdicion(${index})">Guardar cambios</button>
+    </div>
+  `;
+  
+  // Mostrar el modal de edición
+  const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
+  modal.show();
+}
+
+function guardarEdicion(index) {
+  const pedido = getPedido();
+  const item = pedido[index];
+  
+  // Obtener la lista de checkboxes y actualizar los ingredientes según las casillas seleccionadas
+  const checkboxes = document.querySelectorAll('#ingredientesLista input[type="checkbox"]');
+  const ingredientesEditados = [];
+
+  checkboxes.forEach(checkbox => {
+    if (checkbox.checked) {
+      ingredientesEditados.push(checkbox.nextElementSibling.textContent); // El ingrediente es el texto del label
+    }
+  });
+
+  // Si el campo "Nuevo ingrediente" no está vacío, añadirlo a la lista
+  const nuevoIngrediente = document.getElementById('nuevoIngrediente').value.trim();
+  if (nuevoIngrediente !== "") {
+    ingredientesEditados.push(nuevoIngrediente);
+  }
+
+  // Actualizar los ingredientes en el pedido
+  item.ingredientes = ingredientesEditados;
+
+  // Guardar el carrito actualizado en localStorage
+  setPedido(pedido);
+
+  // Cerrar el modal después de guardar
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditar'));
+  if (modal) modal.hide();
+
+  // Redibujar el modal de la orden con los cambios
+  renderOrdenModal();
+
+  // Actualizar el contador del carrito
+  actualizarContador();
+}
+
 //-----------------------------------------------------------------------------------------------------------------------------------------------
 function eliminarProducto(i) {
   const pd = getPedido(); pd.splice(i, 1); setPedido(pd); renderPedidoMesero(); actualizarContador();
@@ -500,7 +569,6 @@ async function iniciarSesion() {
             mensajeError.textContent = 'Error de conexión con el servidor';
         }
     }
-
 
 
 
