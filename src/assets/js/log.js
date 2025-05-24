@@ -67,9 +67,15 @@ function renderMenu() {
   });
 }
 
+// ── AGREGAR EL PEDIDO ────────────────────────────────────────────────────
 function agregarAlPedido(id) {
   const pedido = getPedido();
   const producto = productos.find(p => p.id === id);
+
+  const ingredientesQuitados = producto.ingredientes.filter(ingrediente => {
+    const checkbox = document.getElementById(`check-${id}-${ingrediente}`);
+    return checkbox && !checkbox.checked;
+  });
 
   const ingredientesSeleccionados = producto.ingredientes.filter(ingrediente => {
     const checkbox = document.getElementById(`check-${id}-${ingrediente}`);
@@ -77,7 +83,9 @@ function agregarAlPedido(id) {
   });
 
   const extraInput = document.getElementById(`extra-${id}`);
+  const ingredientesAgregados = [];
   if (extraInput && extraInput.value.trim() !== "") {
+    ingredientesAgregados.push(extraInput.value.trim());
     ingredientesSeleccionados.push(extraInput.value.trim());
   }
 
@@ -85,7 +93,9 @@ function agregarAlPedido(id) {
     id: producto.id,
     nombre: producto.nombre,
     imagen: producto.imagen,
-    ingredientes: ingredientesSeleccionados
+    ingredientes: ingredientesSeleccionados,
+    agregados: ingredientesAgregados,
+    quitados: ingredientesQuitados
   };
 
   pedido.push(pedidoFinal);
@@ -104,26 +114,49 @@ function actualizarContador() {
 function renderPedidoMesero() {
   const cont = document.getElementById("pedidoMesero");
   if (!cont) return;
-  const saludo = document.getElementById("saludoMesero");
-  if (saludo) saludo.textContent = `Hola, ${localStorage.getItem("usuario")} — Mesa ${localStorage.getItem("mesa")}`;
-  const pedido = getPedido(); cont.innerHTML = "";
+
+  const usuario = localStorage.getItem("usuario");
+  const mesa = localStorage.getItem("mesa");
+  const pedido = getPedido();
+
+  cont.innerHTML = "";
+
   if (!pedido.length) {
     cont.innerHTML = "<p>No hay productos.</p>";
     return;
   }
-  const tbl = document.createElement("table"); tbl.className = "table";
-  tbl.innerHTML = `<thead><tr><th>Producto</th><th>Acción</th></tr></thead>`;
-  const tb = document.createElement("tbody");
-  pedido.forEach((it, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${it.nombre}</td><td>
-      <button class="btn btn-sm btn-danger" onclick="eliminarProducto(${i})">Eliminar</button>
-    </td>`;
-    tb.appendChild(tr);
-  });
-  tbl.appendChild(tb); cont.appendChild(tbl);
-}
 
+  cont.innerHTML += `
+    <p><strong>Cliente:</strong> ${usuario}</p>
+    <p><strong>Mesa:</strong> ${mesa}</p>
+    <h4>Productos:</h4>
+  `;
+
+  pedido.forEach((item, i) => {
+    const listaIngredientes = item.ingredientes?.length
+      ? item.ingredientes.join(", ")
+      : "Sin ingredientes";
+
+    const agregados = item.agregados?.length
+      ? item.agregados.join(", ")
+      : "Ninguno";
+
+    const quitados = item.quitados?.length
+      ? item.quitados.join(", ")
+      : "Ninguno";
+
+    cont.innerHTML += `
+      <div class="producto">
+        <p><strong>${i + 1}. ${item.nombre}</strong></p>
+        <p>🧂 Ingredientes actuales: ${listaIngredientes}</p>
+        <p style="color:green;">➕ Agregados: ${agregados}</p>
+        <p style="color:red;">➖ Quitados: ${quitados}</p>
+        <button class="btn btn-sm btn-danger" onclick="eliminarProducto(${i})">Eliminar</button>
+      </div>
+    `;
+  });
+}
+//-----------------------------------------------------------------------------------------------------------------------------------------------
 function eliminarProducto(i) {
   const pd = getPedido(); pd.splice(i, 1); setPedido(pd); renderPedidoMesero(); actualizarContador();
 }
@@ -137,11 +170,32 @@ function vaciarPedido() {
 function enviarACocina() {
   const pd = getPedido();
   if (!pd.length) return alert("No hay nada.");
+
+  const mesa = localStorage.getItem("mesa");
+  const usuario = localStorage.getItem("usuario");
+  const timestamp = Date.now();
+
+  // Guardar en cocina
   const k = getKitchen();
-  k.push({ mesa: localStorage.getItem("mesa"), usuario: localStorage.getItem("usuario"), items: pd, timestamp: Date.now() });
-  setKitchen(k); setPedido([]); renderPedidoMesero(); actualizarContador(); alert("Enviado a cocina");
+  k.push({ mesa, usuario, items: pd, timestamp });
+  setKitchen(k);
+
+  // Guardar en historial
+  const historial = getHistorial();
+  historial.push(...pd.map(p => ({
+    id: p.id,
+    nombre: p.nombre,
+    fecha: new Date().toISOString().split("T")[0] // YYYY-MM-DD
+  })));
+  setHistorial(historial);
+
+  setPedido([]);
+  renderPedidoMesero();
+  actualizarContador();
+  alert("Enviado a cocina");
 }
 
+//-----------------------------------------------------------------------------------------------------------------------------------------------
 // ── COCINA ────────────────────────────────────────────────────────────
 function renderPedidosCocina() {
   const cont = document.getElementById("pedidosCocina"); if (!cont) return;
@@ -168,15 +222,22 @@ function completarPedido(i) {
   renderPedidosCocina();
 }
 
-// ── ADMIN ─────────────────────────────────────────────────────────────
+// ================= ADMIN =====================
+
+// Inventario: mostrar y editar
 function renderInventarioAdmin() {
-  const tbody = document.getElementById("inventarioAdmin"); if (!tbody) return; tbody.innerHTML = "";
+  const tbody = document.getElementById("inventarioAdmin");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
   productos.forEach(p => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${p.nombre}</td>
+    tr.innerHTML = `
+      <td>${p.nombre}</td>
       <td><input type="number" id="stk-${p.id}" value="${p.stock}" class="form-control form-control-sm"/></td>
       <td><input type="number" id="min-${p.id}" value="${p.minStock}" class="form-control form-control-sm"/></td>
-      <td><button class="btn btn-sm btn-primary" onclick="updateStock(${p.id})">Guardar</button></td>`;
+      <td><button class="btn btn-sm btn-primary" onclick="updateStock(${p.id})">Guardar</button></td>
+    `;
     if (p.stock <= p.minStock) tr.classList.add("table-warning");
     tbody.appendChild(tr);
   });
@@ -189,26 +250,114 @@ function updateStock(id) {
   renderInventarioAdmin();
 }
 
-// ── REPORTES ──────────────────────────────────────────────────────────
+// Historial de pedidos (simple por nombre y fecha)
+function getHistorial() {
+  return JSON.parse(localStorage.getItem('historialPedidos')) || [];
+}
+
+function renderHistorialPedidos() {
+  const historial = getHistorial();
+  const lista = document.getElementById("listaHistorial");
+  const totalSpan = document.getElementById("totalRecaudado");
+
+  let total = 0;
+  lista.innerHTML = "";
+
+  historial.forEach((pedido, i) => {
+    const li = document.createElement("li");
+    li.className = "list-group-item";
+    li.textContent = `#${i + 1} | ${pedido.fecha} | ${pedido.nombre}`;
+    lista.appendChild(li);
+    total += 100; // Precio fijo por producto
+  });
+
+  totalSpan.textContent = total.toFixed(2);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderHistorialPedidos();
+
+  const btnPDF = document.getElementById("btnPDF");
+  if (btnPDF) {
+    btnPDF.addEventListener("click", () => {
+      const contenido = document.getElementById("contenidoHistorial");
+      if (!contenido || contenido.innerHTML.trim() === "") {
+        alert("No hay contenido para exportar.");
+        return;
+      }
+
+      const opciones = {
+        margin: 0.5,
+        filename: 'historial_pedidos.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opciones).from(contenido).save();
+    });
+  }
+});
+
+
+// Descargar PDF del historial
+function descargarHistorialPDF() {
+  const contenido = document.getElementById("contenidoHistorial");
+  const opciones = {
+    margin: 0.5,
+    filename: 'historial_pedidos.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+  html2pdf().set(opciones).from(contenido).save();
+}
+
+// Ventas por día (usando kitchenCompleted)
 function renderReportes() {
-  const cont = document.getElementById("reportes"); if (!cont) return;
+  const cont = document.getElementById("reportes");
+  if (!cont) return;
+
   const comp = JSON.parse(localStorage.getItem("kitchenCompleted")) || [];
   if (!comp.length) {
     cont.innerHTML = "<p>No hay ventas.</p>";
     return;
   }
+
   const porDia = comp.reduce((a, p) => {
     const d = new Date(p.timestamp).toLocaleDateString();
-    a[d] = a[d] || { total: 0, items: [] };
-    a[d].total += p.items.length * 100;
-    a[d].items.push(...p.items);
+    a[d] = a[d] || {};
+    p.items.forEach(i => {
+      a[d][i.nombre] = (a[d][i.nombre] || 0) + 1;
+    });
     return a;
   }, {});
-  cont.innerHTML = Object.entries(porDia).map(([d, inf]) => `
-    <div class="card mb-3"><div class="card-header">${d} — $${inf.total}</div>
-      <ul class="list-group list-group-flush">${inf.items.map(i => `<li class="list-group-item">${i.nombre}</li>`).join("")}</ul>
-    </div>`).join("");
+
+  cont.innerHTML = Object.entries(porDia).map(([fecha, items]) => `
+    <div class="card mb-3">
+      <div class="card-header">${fecha}</div>
+      <table class="table">
+        <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
+        <tbody>
+          ${Object.entries(items).map(([prod, cant]) => `
+            <tr><td>${prod}</td><td>${cant}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `).join('');
 }
+
+// Inicializar admin
+window.addEventListener("DOMContentLoaded", () => {
+  if (document.getElementById("inventarioAdmin")) renderInventarioAdmin();
+  if (document.getElementById("listaHistorial")) renderHistorialPedidos();
+  if (document.getElementById("reportes")) renderReportes();
+
+  const btnPDF = document.getElementById("btnPDF");
+  if (btnPDF) btnPDF.addEventListener("click", descargarHistorialPDF);
+});
+
 
 // ── Inicialización ────────────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
@@ -290,6 +439,27 @@ function enviarOrden() {
 
 //------------log
 function iniciarSesion() {
+    const usuario = document.getElementById("usuario").value.trim();
+    const contrasena = document.getElementById("contrasena").value.trim();
+    const mensajeError = document.getElementById("mensajeError");
+
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+    const usuarioEncontrado = usuarios.find(u =>
+        u.usuario === usuario && u.contrasena === 1234
+    );
+
+    if (usuarioEncontrado) {
+        localStorage.setItem("usuario", usuario);
+        mensajeError.textContent = "";
+        window.location.href = "menu.html"; // Cambia a tu página principal
+    } else {
+        mensajeError.textContent = "Usuario o contraseña incorrectos.";
+    }
+}
+
+
+function iniciarSesion() {
   const usuario = document.getElementById('usuario').value;
   const contrasena = document.getElementById('contrasena').value;
   const mensajeError = document.getElementById('mensajeError');
@@ -330,3 +500,7 @@ async function iniciarSesion() {
             mensajeError.textContent = 'Error de conexión con el servidor';
         }
     }
+
+
+
+
