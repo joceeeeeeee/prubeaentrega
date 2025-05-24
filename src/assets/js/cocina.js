@@ -211,61 +211,94 @@ function enviarAlMesero() {
 
 // ── COCINA ────────────────────────────────────────────────────────────
 function renderPedidosCocina() {
-  const cont = document.getElementById("pedidosCocina"); 
+  const cont = document.getElementById("pedidosCocina");
   if (!cont) return;
-  const k = getKitchen(); 
-  cont.innerHTML = "";
-  if (!k.length) {
-    const modalVacio = new bootstrap.Modal(document.getElementById("modalVacio"));
-    modalVacio.show();
+
+  const pedidos = getKitchen(); // Obtener pedidos almacenados
+  cont.innerHTML = ""; // Limpiar contenido anterior
+
+  if (!pedidos.length) {
+    cont.innerHTML = "<p>No hay pedidos.</p>";
     return;
   }
 
-  const tbl = document.createElement("table"); 
-  tbl.className = "table";
-  tbl.innerHTML = `<thead><tr><th>Mesa</th><th>Usuario</th><th>Productos</th><th>Acción</th></tr></thead>`;
-  const tb = document.createElement("tbody");
+  // Contenedor general en formato grid
+  const grid = document.createElement("div");
+  grid.className = "grid";
 
-  k.forEach((pd, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${pd.mesa}</td><td>${pd.usuario}</td><td><ul>${pd.items.map(x => `<li>${x.nombre}</li>`).join("")}</ul></td>
-      <td><button class="btn btn-sm btn-success" onclick="mostrarDetalle(${i})">Listo</button></td>`;
-    tb.appendChild(tr);
+  pedidos.forEach((pedido, i) => {
+    // Crear tarjeta contenedora del pedido
+    const card = document.createElement("div");
+    card.className = "order status-pending"; // Clase de estado fija: 'pendiente'
+
+    // Encabezado con número de mesa y usuario
+    const header = document.createElement("div");
+    header.className = "order-header";
+    header.textContent = `Mesa ${pedido.mesa} - ${pedido.usuario}`;
+    card.appendChild(header);
+
+    // Cuerpo con la lista de productos
+    const body = document.createElement("div");
+    body.className = "order-body";
+
+    const ul = document.createElement("ul");
+    pedido.items.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.cantidad || 1} ${item.nombre}`;
+      ul.appendChild(li);
+    });
+
+    body.appendChild(ul);
+    card.appendChild(body);
+
+    // Botón para marcar pedido como completado
+    const btn = document.createElement("button");
+    btn.className = "btn btn-sm btn-success";
+    btn.textContent = "Listo";
+    btn.onclick = () => completarPedido(i);
+    card.appendChild(btn);
+
+    // Agregar tarjeta al grid
+    grid.appendChild(card);
   });
-  tbl.appendChild(tb); 
-  cont.appendChild(tbl);
+
+  // Insertar el grid en el contenedor
+  cont.appendChild(grid);
 }
+function completarPedido(i) {
+  const kitchen = getKitchen(); // Obtiene todos los pedidos actuales
+  const pedidoCompleto = kitchen.splice(i, 1)[0]; // Elimina el pedido completado
 
-function mostrarDetalle(i) {
-  const k = getKitchen(); 
-  const pd = k[i];
+  // Guarda los pedidos actualizados
+  setKitchen(kitchen);
 
-  // Mostrar el modal con los detalles del pedido
-  const detalleOrden = document.getElementById("detalleOrden");
-  detalleOrden.innerHTML = pd.items.map(x => `<li>${x.nombre}</li>`).join(""); // Agregar productos al modal
-  
-  const myModal = new bootstrap.Modal(document.getElementById('pedidoModal'));
-  myModal.show();
+  // Guarda el pedido como completado
+  const completados = JSON.parse(localStorage.getItem("kitchenCompleted")) || [];
+  completados.push(pedidoCompleto);
+  localStorage.setItem("kitchenCompleted", JSON.stringify(completados));
 
-  // Guardar el índice del pedido seleccionado
-  window.selectedPedidoIndex = i;
-}
-
-function completarPedidoModal() {
-  const k = getKitchen();
-  const done = k.splice(window.selectedPedidoIndex, 1)[0]; 
-  setKitchen(k);
-
-  const c = JSON.parse(localStorage.getItem("kitchenCompleted")) || []; 
-  c.push(done); 
-  localStorage.setItem("kitchenCompleted", JSON.stringify(c));
-
+  // Vuelve a renderizar los pedidos
   renderPedidosCocina();
-  const myModal = new bootstrap.Modal(document.getElementById('pedidoModal'));
-  myModal.hide(); // Cerrar el modal
 }
 
+function getOrderStatus(pedido) {
+  const estados = pedido.items.map(item => item.estado);
 
+  if (estados.every(e => e === "listo")) return "completed";
+  if (estados.some(e => e === "en proceso")) return "inprocess";
+  return "pending";
+}
+// Función para actualizar la hora cada segundo
+setInterval(() => {
+  const now = new Date(); // Obtiene la hora actual
+  const hours = now.getHours(); // Hora en formato 24h
+  const minutes = now.getMinutes().toString().padStart(2, '0'); // Asegura que los minutos tengan 2 dígitos
+  const ampm = hours >= 12 ? 'pm' : 'am'; // Determina si es am o pm
+  const hour12 = hours % 12 || 12; // Convierte a formato de 12h
+
+  // Actualiza el contenido del elemento con id="time"
+  document.getElementById("time").textContent = `${hour12}:${minutes} ${ampm}`;
+}, 1000); // Ejecuta esta función cada 1000 ms (1 segundo)
 
 // ── ADMIN ─────────────────────────────────────────────────────────────
 function renderInventarioAdmin() {
@@ -377,6 +410,3 @@ function enviarOrden() {
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalOrden'));
   modal.hide();
 }
-
-
-
